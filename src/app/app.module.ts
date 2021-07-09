@@ -55,8 +55,8 @@ import { ErrorPageComponent } from './common/error/error.component';
 * ng build -c production
 * ng serve -c docker
 */
-import { apiConfig, environment } from './../environments/environment';
-import { SzRestConfigurationFactory } from './common/sdk-config.factory';
+import { apiConfig, pocConfig, environment } from './../environments/environment';
+import { SzPocConfigurationFactory, SzRestConfigurationFactory } from './common/sdk-config.factory';
 //import { AuthConfigFactory } from './common/auth-config.factory';
 import { AuthGuardService } from './services/ag.service';
 import { AdminAuthService } from './services/admin.service';
@@ -94,7 +94,7 @@ import { AdminBulkDataService } from './services/admin.bulk-data.service';
     LayoutModule,
     SenzingSdkModule.forRoot( SzRestConfigurationFactory ),
     SenzingSdkGraphModule.forRoot( SzRestConfigurationFactory ),
-    SenzingDataServiceModule.forRoot( SzRestConfigurationFactory ),
+    SenzingDataServiceModule.forRoot( SzRestConfigurationFactory, SzPocConfigurationFactory ),
     SpinnerModule,
     environment.test ? HttpClientInMemoryWebApiModule.forRoot(InMemoryDataService, { delay: 100 }) : []
   ],

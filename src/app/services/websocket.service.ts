@@ -3,7 +3,8 @@ import { BehaviorSubject, CompletionObserver, Observable, of, PartialObserver, S
 import { take, takeUntil, filter, map, tap, catchError, takeWhile } from 'rxjs/operators';
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket';
 //import { v4 as uuidv4 } from 'uuid';
-import { AdminStreamConnProperties } from '@senzing/sdk-components-ng';
+//import { AdminStreamConnProperties } from '@senzing/sdk-components-ng';
+import { SzWebSocketConnectionParameters, SzWebSocketConnectionConfiguration, SzPocWebSocketService } from '@senzing/sdk-components-ng';
 
 interface offlineMessage {
   data: any,
@@ -13,7 +14,7 @@ interface offlineMessage {
 @Injectable({
   providedIn: 'root'
 })
-export class WebSocketService {
+export class HufflePuffWebSocketService {
   public unsubscribe$ = new Subject<void>();
   /** when an error occurs it is sent to this subject */
   private _onErrorSubject = new Subject<any>();
@@ -25,7 +26,7 @@ export class WebSocketService {
   public onStatusChange: Observable<CloseEvent | Event> = this._onStatusChange.asObservable();
   /** when a the socket has been opened, reopened, or closed. returns true for connected, false for disconnected */
   public onConnectionStateChange: Observable<boolean> = this.onStatusChange.pipe(
-    map( WebSocketService.statusChangeEvtToConnectionBool )
+    map( HufflePuffWebSocketService.statusChangeEvtToConnectionBool )
   )
   /** when the connected socket receives an upstream message */
   private _onMessageRecieved: Subject<any> = new Subject<any>();
@@ -56,7 +57,7 @@ export class WebSocketService {
   private manuallyDisconnected = false;
 
   /** instance of AdminStreamConnProperties used for connection instantiation and behavior */
-  public connectionProperties: AdminStreamConnProperties = {
+  public connectionProperties: SzWebSocketConnectionParameters = {
     "hostname": 'localhost:8555',
     "connected": false,
     "connectionTest": false,
@@ -77,7 +78,8 @@ export class WebSocketService {
     return retVal;
   }
 
-  static getSocketUriFromConnectionObject(connProps: AdminStreamConnProperties, path?: string, method?: "POST" | "PUT" | "GET"): string {
+  static getSocketUriFromConnectionObject(connProps: SzWebSocketConnectionParameters, path?: string, method?: "POST" | "PUT" | "GET"): string {
+    return 
     let retVal = "ws://localhost:8955";
     if(connProps) {
       retVal  = (connProps.secure) ? "wss://" : "ws://";
@@ -186,7 +188,7 @@ export class WebSocketService {
     ).subscribe( this._onDisconnectRetry.bind(this) );
     */
     this.onStatusChange.pipe(
-      map( WebSocketService.statusChangeEvtToConnectionBool ),
+      map( HufflePuffWebSocketService.statusChangeEvtToConnectionBool ),
       filter( (_status) => { 
         return this.connectionProperties.reconnectOnClose && !this.manuallyDisconnected && 
         this._reconnectionAttemptsIncrement < this.connectionProperties.reconnectConsecutiveAttemptLimit && 
@@ -234,7 +236,7 @@ export class WebSocketService {
     if(port) { this.connectionProperties.port = port; } 
 
     // connection string
-    let _wsaddr = WebSocketService.getSocketUriFromConnectionObject(this.connectionProperties);
+    let _wsaddr = HufflePuffWebSocketService.getSocketUriFromConnectionObject(this.connectionProperties);
 
     // when connection is opened proxy to status$
     const openSubject = new Subject<Event>();
@@ -348,7 +350,7 @@ export class WebSocketService {
           catchError( (error: Error) => {
             console.log('WebSocketService.reconnect: error: ', error, this.ws$.error.toString());
             if(error && !error.message) {
-              error.message = `Could not connect to Stream interface(${WebSocketService.getSocketUriFromConnectionObject(this.connectionProperties)}) after a disconnect. Will continue to retry connection until reconnection attempt limit(${this._reconnectionAttemptsIncrement} / ${this.connectionProperties.reconnectConsecutiveAttemptLimit}) is reached.`;
+              error.message = `Could not connect to Stream interface(${HufflePuffWebSocketService.getSocketUriFromConnectionObject(this.connectionProperties)}) after a disconnect. Will continue to retry connection until reconnection attempt limit(${this._reconnectionAttemptsIncrement} / ${this.connectionProperties.reconnectConsecutiveAttemptLimit}) is reached.`;
             } else if(this.ws$ && this.ws$.hasError && this.ws$.error.toString) {
               error.message = this.ws$.error.toString();
             } else {
@@ -357,14 +359,14 @@ export class WebSocketService {
             this._onError(error);
             return of(error)
           } ),
-          map( WebSocketService.statusChangeEvtToConnectionBool ),
+          map( HufflePuffWebSocketService.statusChangeEvtToConnectionBool ),
           filter((status: boolean) => {
             return status;
           })
         ).subscribe((reconnected) => {
           //this.status$.next(true);
           this._reconnectionAttemptsIncrement = 0;
-          console.log(`(${reconnected} | ${this._reconnectionAttemptsIncrement})!!successfully reconnected to "${WebSocketService.getSocketUriFromConnectionObject(this.connectionProperties)}"`, reconnected);
+          console.log(`(${reconnected} | ${this._reconnectionAttemptsIncrement})!!successfully reconnected to "${HufflePuffWebSocketService.getSocketUriFromConnectionObject(this.connectionProperties)}"`, reconnected);
         })
       }
 
@@ -401,12 +403,12 @@ export class WebSocketService {
     this._onErrorSubject.next( err );
   }
   /** test connection properties */
-  public testConnection(connectionProps: AdminStreamConnProperties): Observable<boolean> {
+  public testConnection(connectionProps: SzWebSocketConnectionParameters): Observable<boolean> {
     const retSub = new Subject<boolean>();
     const retVal: Observable<boolean> = retSub.asObservable();
 
     if(connectionProps) {
-      let _wsaddr = WebSocketService.getSocketUriFromConnectionObject(this.connectionProperties, "/load-queue/bulk-data/records", "POST");
+      let _wsaddr = HufflePuffWebSocketService.getSocketUriFromConnectionObject(this.connectionProperties, "/load-queue/bulk-data/records", "POST");
 
       const openSubject = new Subject<Event>();
       openSubject.pipe(

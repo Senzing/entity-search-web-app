@@ -18,7 +18,7 @@ import { AdminErrorNoAdminModeComponent } from './errors/no-admin.component';
 import { AdminLoginComponent } from './login/login.component';
 import { AdminServerInfoComponent } from './server-info/server-info.component';
 import { AdminLicenseInfoComponent } from './license-info/license-info.component';
-import { WebSocketService } from '../services/websocket.service';
+//import { WebSocketService } from '../services/websocket.service';
 
 /**
  * bulk data components. these are workaround clones.
@@ -37,7 +37,7 @@ import { SzProgressBarComponent } from '../common/progress-bar/progress-bar.comp
 export function tokenGetter() {
   return localStorage.getItem('access_token');
 }
-import { SzRestConfigurationFactory } from '../common/sdk-config.factory';
+import { SzRestConfigurationFactory, SzPocConfigurationFactory } from '../common/sdk-config.factory';
 import { SzWebAppConfigService } from '../services/config.service';
 
 @NgModule({
@@ -66,7 +66,7 @@ import { SzWebAppConfigService } from '../services/config.service';
     FormsModule,
     SenzingSdkModule.forRoot( SzRestConfigurationFactory ),
     SenzingSdkGraphModule.forRoot( SzRestConfigurationFactory ),
-    SenzingDataServiceModule.forRoot( SzRestConfigurationFactory ),
+    SenzingDataServiceModule.forRoot( SzRestConfigurationFactory, SzPocConfigurationFactory ),
     AdminRoutingModule,
     JwtModule.forRoot({
       config: {
@@ -82,8 +82,7 @@ import { SzWebAppConfigService } from '../services/config.service';
        useClass: OAuthInterceptor,
        multi: true
     },
-    SzWebAppConfigService,
-    WebSocketService
+    SzWebAppConfigService
   ]
 })
 export class AdminModule { }

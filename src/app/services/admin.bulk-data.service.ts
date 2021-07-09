@@ -3,10 +3,15 @@ import { CanActivate, Router } from '@angular/router';
 import { ActivatedRouteSnapshot } from '@angular/router';
 import { Observable, of, from, interval, Subject, BehaviorSubject, timer } from 'rxjs';
 import { map, catchError, tap, switchMap, takeUntil, take, filter, takeWhile, delay } from 'rxjs/operators';
-import { SzConfigurationService, SzAdminService, SzEntityTypesService, SzServerInfo, SzBaseResponseMeta, SzPrefsService, SzBulkDataService, SzDataSourcesService } from '@senzing/sdk-components-ng';
+import { SzConfigurationService, SzAdminService, SzEntityTypesService, SzPrefsService, SzDataSourcesService } from '@senzing/sdk-components-ng';
 import { HttpClient } from '@angular/common/http';
 import { AuthConfig, SzWebAppConfigService } from './config.service';
-import { AdminStreamConnProperties, AdminStreamAnalysisConfig, AdminStreamLoadConfig } from '@senzing/sdk-components-ng';
+import { 
+    SzPocWebSocketService,
+    SzWebSocketConnectionParameters, 
+    AdminStreamAnalysisConfig, 
+    AdminStreamLoadConfig 
+} from '@senzing/sdk-components-ng';
 
 import {
     determineLineEndingStyle,
@@ -17,7 +22,7 @@ import {
     getUtf8ByteLength
 } from '../common/import-utilities';
 
-import { WebSocketService } from './websocket.service';
+//import { WebSocketService } from './websocket.service';
 import { SzStreamingFileRecordParser } from '../common/streaming-file-record-parser';
 import { BulkDataService, SzBulkDataAnalysis, SzBulkDataAnalysisResponse, SzBulkLoadResponse, SzBulkLoadResult, SzDataSourceRecordAnalysis, SzDataSourceBulkLoadResult, SzEntityTypeBulkLoadResult, SzEntityTypeRecordAnalysis } from '@senzing/rest-api-client-ng';
 
@@ -204,7 +209,7 @@ export class AdminBulkDataService {
     private _onStreamStatusChange = new Subject<CloseEvent | Event>();
     public onStreamStatusChange = this._onStreamStatusChange.asObservable();
     public onStreamConnectionStateChange = this._onStreamStatusChange.asObservable().pipe(
-        map( WebSocketService.statusChangeEvtToConnectionBool )
+        map( SzPocWebSocketService.statusChangeEvtToConnectionBool )
     )
     /** if a stream import is in progress, pause and data sending */
     public pauseStreamLoad() {
@@ -263,12 +268,12 @@ export class AdminBulkDataService {
         this.prefs.admin.streamAnalysisConfig = value;
     }
     /** proxy to websocket service connection properties */
-    public set streamConnectionProperties(value: AdminStreamConnProperties) {
+    public set streamConnectionProperties(value: SzWebSocketConnectionParameters) {
         //this.webSocketService.connectionProperties = value;
         // update stream connection prefs
         this.prefs.admin.streamConnectionProperties = value;
     }
-    public get streamConnectionProperties(): AdminStreamConnProperties {
+    public get streamConnectionProperties(): SzWebSocketConnectionParameters {
         return this.webSocketService.connectionProperties;
     }
     /** parameters that change behavior of loading/importing records via streaming interface. eg "mapUnspecifieD", "ignoreRecordsWithNoDataSource" */
@@ -319,12 +324,12 @@ export class AdminBulkDataService {
         private bulkDataService: BulkDataService,
         private datasourcesService: SzDataSourcesService,
         private entityTypesService: SzEntityTypesService,
-        private webSocketService: WebSocketService,
+        private webSocketService: SzPocWebSocketService,
     ) {
         this.prefs.admin.prefsChanged.subscribe((prefs) => {
             //console.log('AdminBulkDataService.prefs.admin.prefChanged: ', this.webSocketService.connected, prefs);
             if(prefs && prefs && prefs.streamConnectionProperties !== undefined) {
-                let _streamConnProperties = (prefs.streamConnectionProperties) as AdminStreamConnProperties;
+                let _streamConnProperties = (prefs.streamConnectionProperties) as SzWebSocketConnectionParameters;
                 //console.log('stream connection properties saved to prefs: ', JSON.stringify(_streamConnProperties) == JSON.stringify(this.streamConnectionProperties), _streamConnProperties, this.streamConnectionProperties);
                 this.webSocketService.connectionProperties = _streamConnProperties;
                 // I tried doing some fancy checking etc
@@ -884,7 +889,7 @@ export class AdminBulkDataService {
             streamSocketEndpoint        += `${qsChar}mapEntityTypes=${encodeURIComponent(JSON.stringify(entityTypeMap))}`;
             qsChar = '&';
         }
-        streamSocketEndpoint            += `${qsChar}eofSendTimeout=20&progressPeriod=60`;
+        streamSocketEndpoint            += `${qsChar}eofSendTimeout=40&progressPeriod=60`;
 
         // construct summary object that we can report 
         // statistics to

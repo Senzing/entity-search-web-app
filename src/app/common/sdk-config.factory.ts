@@ -1,4 +1,4 @@
-import { SzRestConfiguration } from '@senzing/sdk-components-ng';
+import { SzRestConfiguration, SzWebSocketConnectionConfiguration } from '@senzing/sdk-components-ng';
 
 /**
 * Pull in api configuration(SzRestConfigurationParameters)
@@ -8,7 +8,7 @@ import { SzRestConfiguration } from '@senzing/sdk-components-ng';
 * ng build -c production
 * ng serve -c docker
 */
-import { apiConfig, environment } from '../../environments/environment';
+import { apiConfig, pocConfig, environment } from '../../environments/environment';
 
 /**
  * create exportable config factory
@@ -18,4 +18,8 @@ import { apiConfig, environment } from '../../environments/environment';
  */
 export function SzRestConfigurationFactory() {
   return new SzRestConfiguration( (apiConfig ? apiConfig : undefined) );
+}
+
+export function SzPocConfigurationFactory() {
+  return new SzWebSocketConnectionConfiguration( (pocConfig ? pocConfig : undefined) )
 }

@@ -5,7 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 
 import { AdminStreamConnDialogComponent } from '../../common/stream-conn-dialog/stream-conn-dialog.component';
 import { AdminBulkDataService, AdminStreamAnalysisSummary, AdminStreamLoadSummary } from '../../services/admin.bulk-data.service';
-import { AdminStreamAnalysisConfig, AdminStreamConnProperties, AdminStreamLoadConfig } from '@senzing/sdk-components-ng';
+import { SzWebSocketConnectionParameters, AdminStreamAnalysisConfig, AdminStreamLoadConfig } from '@senzing/sdk-components-ng';
 import { filter, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
@@ -37,7 +37,7 @@ export class AdminDataLoaderComponent implements OnInit, OnDestroy {
           }
         });
         dialogRef.afterClosed().subscribe((result: {
-            streamConnectionProperties: AdminStreamConnProperties,
+            streamConnectionProperties: SzWebSocketConnectionParameters,
             streamAnalysisConfig: AdminStreamAnalysisConfig,
             streamLoadConfig: AdminStreamLoadConfig
           } | undefined) => {

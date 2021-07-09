@@ -1,4 +1,4 @@
-import { SzRestConfigurationParameters } from '@senzing/sdk-components-ng';
+import { SzRestConfigurationParameters, SzWebSocketConnectionParameters } from '@senzing/sdk-components-ng';
 
 // This file can be replaced during build by using the `fileReplacements` array.
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
@@ -14,6 +14,13 @@ export const apiConfig: SzRestConfigurationParameters = {
   'basePath': '/api',
   'withCredentials': true
 };
+
+export const pocConfig: SzWebSocketConnectionParameters = {
+  'hostname': 'localhost',
+  'port': 8255,
+  'secure': false
+};
+
 
 /** security options for admin area */
 //import * as SEC_OPTS from '../../auth/auth.conf.json';

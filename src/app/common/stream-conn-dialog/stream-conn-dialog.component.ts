@@ -1,10 +1,11 @@
 import { AfterViewInit, Component, Inject, OnDestroy, OnInit } from '@angular/core';
 import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
-import { WebSocketService } from '../../services/websocket.service';
+//import { WebSocketService } from '../../services/websocket.service';
+import { SzPocWebSocketService, SzWebSocketConnectionParameters} from '@senzing/sdk-components-ng';
 import { AdminBulkDataService } from '../../services/admin.bulk-data.service';
 
 //import { AdminStreamConnProperties } from '../../services/admin.bulk-data.service';
-import { AdminStreamConnProperties, AdminStreamAnalysisConfig, AdminStreamLoadConfig, AdminStreamUploadRates } from '@senzing/sdk-components-ng';
+import { AdminStreamAnalysisConfig, AdminStreamLoadConfig, AdminStreamUploadRates } from '@senzing/sdk-components-ng';
 import { takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 
@@ -88,10 +89,10 @@ import { Subject } from 'rxjs';
 
     constructor(
       public dialogRef: MatDialogRef<AdminStreamConnDialogComponent>,
-      private webSocketService: WebSocketService,
+      private webSocketService: SzPocWebSocketService,
       private adminBulkDataService: AdminBulkDataService,
       @Inject(MAT_DIALOG_DATA) public data: {
-        streamConnectionProperties: AdminStreamConnProperties,
+        streamConnectionProperties: SzWebSocketConnectionParameters,
         streamAnalysisConfig: AdminStreamAnalysisConfig,
         streamLoadConfig: AdminStreamLoadConfig
       }) {
