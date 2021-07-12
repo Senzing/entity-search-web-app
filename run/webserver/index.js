@@ -112,6 +112,9 @@ if(proxyOptions) {
     //console.log('Proxy CFG: '+ proxyPath);
     //console.log(proxyTargetOptions);
     app.use(proxyPath, apiProxy(proxyTargetOptions));
+    app.on('error', function(e) {
+      console.log('Proxy Error: '+ e.message);
+    });
   }
 } else {
   STARTUP_MSG = STARTUP_MSG + '\n'+'-- REVERSE PROXY TUNNELS COULD NOT BE ENABLED --';

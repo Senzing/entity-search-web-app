@@ -23,19 +23,42 @@ if(cmdOpts) {
 // create a server
 var app     = express();
 var server  = http.createServer(app);
-var proxy   = httpProxy.createServer({ 
+var proxyOptions    = { 
     target: streamServerDestUrl,
-    ws: true 
-});
+    ws: true,
+    onError: onProxyError
+};
+var proxy   = httpProxy.createServer(proxyOptions);
+
+var onProxyError = (err, req, res) => {
+    console.log('-- WS ERROR: '+ err.message +' --');
+    if(res && res.writeHead){
+        res.writeHead(500, {
+            'Content-Type': 'text/json'
+        });
+        
+        res.end('{error: "'+ err.message +'"}');
+    }
+}
+
+server.on('error', onProxyError);
+proxy.on('error', onProxyError);
+// Listen for the `error` event on `proxy`.
+/*
+proxy.on('error', function (err, req, res) {
+    res.writeHead(500, {
+      'Content-Type': 'text/plain'
+    });
+   
+    res.end('Something went wrong. And we are reporting a custom error message.');
+});*/
 
 // Proxy websockets
 server.on('upgrade', function (req, socket, head) {
     console.log("proxying upgrade request", req.url);
-    proxy.ws(req, socket, head);
-});
-proxy.on('error', (err) => {
-    console.log('-- WS ERROR: '+ err.message) +' --';
-})
+    socket.on('error', onProxyError);
+    proxy.ws(req, socket, head, proxyOptions, onProxyError);
+},);
 
 //start our proxy server
 proxy.listen(streamServerProxyPort, () => {
