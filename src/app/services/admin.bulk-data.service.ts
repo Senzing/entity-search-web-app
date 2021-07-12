@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { AuthConfig, SzWebAppConfigService } from './config.service';
 import { 
     SzPocWebSocketService,
+    SzPocStreamLoadingService,
     SzWebSocketConnectionParameters, 
     AdminStreamAnalysisConfig, 
     AdminStreamLoadConfig 
@@ -206,11 +207,11 @@ export class AdminBulkDataService {
     /** when an error occurs this subject is emitted */
     public onError = this._onError.asObservable();
     /** when the status of the websocket stream changes */
-    private _onStreamStatusChange = new Subject<CloseEvent | Event>();
-    public onStreamStatusChange = this._onStreamStatusChange.asObservable();
-    public onStreamConnectionStateChange = this._onStreamStatusChange.asObservable().pipe(
-        map( SzPocWebSocketService.statusChangeEvtToConnectionBool )
-    )
+    //private _onStreamStatusChange = new Subject<CloseEvent | Event>();
+    //public onStreamStatusChange = this._onStreamStatusChange.asObservable();
+    //public onStreamConnectionStateChange = this._onStreamStatusChange.asObservable().pipe(
+    //    map( SzPocWebSocketService.statusChangeEvtToConnectionBool )
+    //)
     /** if a stream import is in progress, pause and data sending */
     public pauseStreamLoad() {
         this._onStreamLoadPaused.next(true);
@@ -257,7 +258,7 @@ export class AdminBulkDataService {
     public onUseStreamingSocketChange = this._onUseStreamingSocketChange.asObservable();
     /** is the configuration for streaming valid */
     public get canOpenStreamSocket(): boolean {
-        return (this.webSocketService && this.webSocketService.connectionProperties) ? this.webSocketService.connectionProperties.connectionTest : false;
+        return (this.pocWebSocketService && this.pocWebSocketService.connectionProperties) ? this.pocWebSocketService.connectionProperties.connectionTest : false;
     }
     /** parameters that change behavior of streaming mode analysis. eg "sampleSize", "ignoreRecordsWithNoDataSource" */
     public get streamAnalysisConfig(): AdminStreamAnalysisConfig {
@@ -269,12 +270,24 @@ export class AdminBulkDataService {
     }
     /** proxy to websocket service connection properties */
     public set streamConnectionProperties(value: SzWebSocketConnectionParameters) {
-        //this.webSocketService.connectionProperties = value;
+        //this.pocWebSocketService.connectionProperties = value;
         // update stream connection prefs
         this.prefs.admin.streamConnectionProperties = value;
     }
     public get streamConnectionProperties(): SzWebSocketConnectionParameters {
-        return this.webSocketService.connectionProperties;
+        return this.pocWebSocketService.connectionProperties;
+    }
+    public toggleStreamConnection() {
+        let oldPath = this.pocWebSocketService.path ? this.pocWebSocketService.path : undefined;
+        
+        if(this.pocWebSocketService.connected){
+            this.pocWebSocketService.disconnect();
+        } else {
+            this.pocWebSocketService.path = "/load-queue/bulk-data/records";
+            this.pocWebSocketService.connect().pipe( take(1) ).subscribe(() => {
+                this.pocWebSocketService.path = oldPath;
+            });
+        }
     }
     /** parameters that change behavior of loading/importing records via streaming interface. eg "mapUnspecifieD", "ignoreRecordsWithNoDataSource" */
     public get streamLoadConfig(): AdminStreamLoadConfig {
@@ -291,7 +304,7 @@ export class AdminBulkDataService {
         this.prefs.admin.bulkSet = value;
     }
     public get streamConnected(): boolean {
-        return this.webSocketService.connected;
+        return this.pocWebSocketService.connected;
     }
     // /AdminStreamAnalysisConfig, AdminStreamLoadConfig
 
@@ -324,14 +337,15 @@ export class AdminBulkDataService {
         private bulkDataService: BulkDataService,
         private datasourcesService: SzDataSourcesService,
         private entityTypesService: SzEntityTypesService,
-        private webSocketService: SzPocWebSocketService,
+        private pocWebSocketService: SzPocWebSocketService,
+        private pocStreamLoadingService: SzPocStreamLoadingService
     ) {
         this.prefs.admin.prefsChanged.subscribe((prefs) => {
-            //console.log('AdminBulkDataService.prefs.admin.prefChanged: ', this.webSocketService.connected, prefs);
+            //console.log('AdminBulkDataService.prefs.admin.prefChanged: ', this.pocWebSocketService.connected, prefs);
             if(prefs && prefs && prefs.streamConnectionProperties !== undefined) {
                 let _streamConnProperties = (prefs.streamConnectionProperties) as SzWebSocketConnectionParameters;
                 //console.log('stream connection properties saved to prefs: ', JSON.stringify(_streamConnProperties) == JSON.stringify(this.streamConnectionProperties), _streamConnProperties, this.streamConnectionProperties);
-                this.webSocketService.connectionProperties = _streamConnProperties;
+                this.pocWebSocketService.connectionProperties = _streamConnProperties;
                 // I tried doing some fancy checking etc
                 // more reliable to just always publish this on change
                 this._onUseStreamingSocketChange.next( (_streamConnProperties.connectionTest && prefs.useStreamingForLoad && prefs.useStreamingForAnalysis) );
@@ -339,26 +353,27 @@ export class AdminBulkDataService {
                 console.warn('no stream connection props in payload: ', prefs);
             }
         });
-        this.webSocketService.onError.subscribe((error: Error) => {
-            //console.warn('AdminBulkDataService.webSocketService.onError: ', error);
+        /*
+        this.pocWebSocketService.onError.subscribe((error: Error) => {
+            //console.warn('AdminBulkDataService.pocWebSocketService.onError: ', error);
             this._onError.next(error);
         });
-        this.webSocketService.onStatusChange.subscribe((statusEvent: CloseEvent | Event) => {
-            console.warn('AdminBulkDataService.webSocketService.onStatusChange: ', statusEvent);
+        this.pocWebSocketService.onStatusChange.subscribe((statusEvent: CloseEvent | Event) => {
+            console.warn('AdminBulkDataService.pocWebSocketService.onStatusChange: ', statusEvent);
             this._onStreamStatusChange.next(statusEvent);
-        });
+        });*/
         /*
-        this.webSocketService.onMessageRecieved.subscribe((data: any) => {
-            console.log('AdminBulkDataService.webSocketService.onMessageRecieved: ', data);
+        this.pocWebSocketService.onMessageRecieved.subscribe((data: any) => {
+            console.log('AdminBulkDataService.pocWebSocketService.onMessageRecieved: ', data);
         });*/
         /** check if "reconnection error" is present, if connection state changes to "true" clear out error */
-        this.webSocketService.onConnectionStateChange.pipe(
+        this.pocWebSocketService.onConnectionStateChange.pipe(
             takeUntil(this.unsubscribe$),
             filter( (connected) => {
                 return (this.currentError !== undefined) && connected && !this.streamConnectionProperties.connected;
             }),
           ).subscribe((status) => {
-            console.warn('AdminBulkDataService.webSocketService.onConnectionStateChange: clear current error:', this.currentError);
+            console.warn('AdminBulkDataService.pocWebSocketService.onConnectionStateChange: clear current error:', this.currentError);
             // check to see if we should clear the current error
             this.currentError = undefined;
           });
@@ -699,25 +714,25 @@ export class AdminBulkDataService {
 
     /** if the websocket stream has been interupted or severed reconnect it */
     public reconnectStream() {
-        if(!this.webSocketService.connected) {
+        if(!this.pocWebSocketService.connected) {
             // do additional check to see if it's attempting to establish connection but has 
             // not successfully done so yet
-            this.webSocketService.reconnect();
+            this.pocWebSocketService.reconnect();
         } else {
             // were already connected, ignore
         }
     }
     /** if the websocket stream is currently connected disconnect it */
     public disconnectStream() {
-        if(this.webSocketService.connected) {
-            this.webSocketService.disconnect();
+        if(this.pocWebSocketService.connected) {
+            this.pocWebSocketService.disconnect();
         } else {
             // were already disconnected, ignore
         }
     }
-    /** alias to webSocketService.sendMessage */
+    /** alias to pocWebSocketService.sendMessage */
     public sendWebSocketMessage(message: string): Observable<boolean> {
-        return this.webSocketService.sendMessage(message);
+        return this.pocWebSocketService.sendMessage(message);
     }
     
     /** takes a JSON file and analyze it */
@@ -742,12 +757,12 @@ export class AdminBulkDataService {
         // socket related
         /*
         let streamAnalysisEndpoint      = "/bulk-data/analyze";
-        if(!this.webSocketService.connected){
+        if(!this.pocWebSocketService.connected){
             // we need to reopen connection
-            console.log('SzBulkDataService.streamAnalyze: websocket needs to be opened: ', this.webSocketService.connected, this.streamConnectionProperties);
-            this.webSocketService.reconnect(streamAnalysisEndpoint, "POST");
+            console.log('SzBulkDataService.streamAnalyze: websocket needs to be opened: ', this.pocWebSocketService.connected, this.streamConnectionProperties);
+            this.pocWebSocketService.reconnect(streamAnalysisEndpoint, "POST");
         } else {
-            console.log('SzBulkDataService.streamAnalyze: websocket thinks its still connected: ', this.webSocketService.connected, this.streamConnectionProperties);
+            console.log('SzBulkDataService.streamAnalyze: websocket thinks its still connected: ', this.pocWebSocketService.connected, this.streamConnectionProperties);
         }*/
 
         // construct summary object that we can report 
@@ -851,11 +866,13 @@ export class AdminBulkDataService {
      * then batch chunks to websocket connection. 
      * @returns Observeable<AdminStreamLoadSummary>
     */
-    streamLoad(file?: File, dataSourceMap?: { [key: string]: string }, entityTypeMap?: { [key: string]: string }, analysis?: SzBulkDataAnalysis): Observable<AdminStreamLoadSummary> {
+    streamLoad(file?: File, dataSourceMap?: { [key: string]: string }, entityTypeMap?: { [key: string]: string }, analysis?: SzBulkDataAnalysis, test?: boolean): Observable<AdminStreamLoadSummary> {
         // parameter related
         dataSourceMap = dataSourceMap ? dataSourceMap : this.dataSourceMap;
         entityTypeMap = entityTypeMap ? entityTypeMap : this.entityTypeMap;
         //console.log('SzBulkDataService.streamLoad: ', file, this.streamConnectionProperties, dataSourceMap, entityTypeMap);
+
+        test = test !== undefined ? test : false; 
 
         // event streams
         let retSubject  = new Subject<AdminStreamLoadSummary>();
@@ -923,22 +940,22 @@ export class AdminBulkDataService {
             status: 'INCOMPLETE',
             complete: false
         }
-        //if(!this.webSocketService.connected){
+        //if(!this.pocWebSocketService.connected){
             // we need to reopen connection
-        //    console.log('SzBulkDataService.streamLoad: websocket needs to be opened: ', this.webSocketService.connected, this.streamConnectionProperties);
+        //    console.log('SzBulkDataService.streamLoad: websocket needs to be opened: ', this.pocWebSocketService.connected, this.streamConnectionProperties);
             //console.log(`SzBulkDataService.streamLoad: ws to be opened: ${streamSocketEndpoint}`, this.streamConnectionProperties);
-            this.webSocketService.reconnect(streamSocketEndpoint, "POST");
+            //this.pocWebSocketService.reconnect(streamSocketEndpoint, "POST");
         //} else {
-        //    console.log('SzBulkDataService.streamLoad: websocket thinks its still connected: ', this.webSocketService.connected, this.streamConnectionProperties);
+        //    console.log('SzBulkDataService.streamLoad: websocket thinks its still connected: ', this.pocWebSocketService.connected, this.streamConnectionProperties);
         //}
-        this.webSocketService.onMessageRecieved.pipe(
+        this.pocWebSocketService.onMessageRecieved.pipe(
             filter( data => { return data !== undefined}),
             map( data => { return (data as AdminStreamLoadSummary) })
         ).subscribe((data: AdminStreamLoadSummary) => {
             // we change responses "recordCount" to "sentRecordCount" because that's what it really is
             // and re-assert our internal "recordCount" which includes all records read so far
             summary = Object.assign(summary, data, {recordCount: summary.recordCount, receivedRecordCount: data.recordCount});
-            console.log('AdminBulkDataService.streamLoad.webSocketService.onMessageRecieved: ', summary, data);
+            console.log('AdminBulkDataService.streamLoad.pocWebSocketService.onMessageRecieved: ', summary, data);
             if(data && data.status === 'COMPLETED' && summary.sentRecordCount === summary.recordCount) {
                 // all data sent
                 summary.complete = true;
@@ -1022,7 +1039,12 @@ export class AdminBulkDataService {
                 readRecords         = readRecords.slice(currQueuePush.length);
 
                 // push them in to websocket (as quick as we read them - so cool)
-                this.webSocketService.sendMessages(currQueuePush);
+                this.pocStreamLoadingService
+                .postRecordsToLoadQueue(currQueuePush, undefined, encodeURIComponent(JSON.stringify(dataSourceMap)), undefined, undefined, encodeURIComponent(JSON.stringify(entityTypeMap)) )
+                .subscribe((result) => {
+                    console.log('on postRecordsToLoadQueue response: ', result);
+                });
+                //this.pocWebSocketService.sendMessages(currQueuePush);
 
                 // update metadata
                 summary.sentRecordCount     = summary.sentRecordCount + currQueuePush.length;
@@ -1088,7 +1110,7 @@ export class AdminBulkDataService {
         //onAllStreamDataSent.pipe(
         //     take(1)
         //).subscribe((allSent) => {
-            this.webSocketService.onMessageRecieved.pipe(
+            this.pocWebSocketService.onMessageRecieved.pipe(
                 filter( data => { return data !== undefined}),
             ).subscribe((data: AdminStreamLoadSummary) => {
                 // we change responses "recordCount" to "sentRecordCount" because that's what it really is
@@ -1131,7 +1153,7 @@ export class AdminBulkDataService {
             // close connection
             //setTimeout(() => {
                 console.log('closing connection: all data sent', summary);
-                this.webSocketService.disconnect();
+                this.pocWebSocketService.disconnect();
             //}, 3000)
         });
 

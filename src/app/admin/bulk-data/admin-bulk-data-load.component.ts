@@ -303,4 +303,13 @@ export class AdminBulkDataLoadComponent implements OnInit, AfterViewInit, OnDest
         this.filePicker.nativeElement.value = "";
       }
     }
+
+    public toggleStreamConnection(event: Event) {
+      console.log('toggleStreamConnection: ', this.adminBulkDataService.toggleStreamConnection() );
+    }
+    public getStreamConnectionProperties(event: Event) {
+      let streamConnProperties = this.adminBulkDataService.streamConnectionProperties;
+
+      console.log('getStreamConnectionProperties: ', JSON.stringify(streamConnProperties, undefined, 2) );
+    }
 }

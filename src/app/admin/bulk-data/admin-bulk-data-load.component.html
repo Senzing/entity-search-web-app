@@ -11,6 +11,9 @@
 <button mat-stroked-button color="primary" (click)="loadFile($event)"  *ngIf="analysis && !result && !currentError && !useSocketStream">Load File</button>
 <button mat-stroked-button color="primary" (click)="loadFileFS($event)"  *ngIf="analysis && !result && !currentError && useSocketStream" [disabled]="!isStreamAnalysisComplete">Load File via Stream</button>
 <button mat-stroked-button color="primary" (click)="clear(); chooseFileInput($event)" *ngIf="analysis && result">Analyze Another File</button>
+<button mat-stroked-button color="primary" (click)="toggleStreamConnection($event)" *ngIf="useSocketStream">Toggle Stream Connection</button>
+<button mat-stroked-button color="primary" (click)="getStreamConnectionProperties($event)" *ngIf="useSocketStream">Show Stream Connection</button>
+
 <!--<button mat-stroked-button color="primary" (click)="debugStreamLoad($event)" *ngIf="analysis && useSocketStream">Debug Stream Depth</button>-->
 <!--<button mat-stroked-button color="primary" (click)="clear();">Clear Results</button>-->
 
